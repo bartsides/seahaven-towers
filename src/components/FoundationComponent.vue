@@ -1,0 +1,40 @@
+<script setup lang="ts">
+import { defineProps } from "vue";
+import type { Card, Suit } from "../types";
+import CardComponent from "./CardComponent.vue";
+
+const { cards, index, suit } = defineProps<{
+  cards: Card[];
+  index: number;
+  suit: Suit;
+}>();
+</script>
+<template>
+  <div class="card-column">
+    <CardComponent
+      class="card"
+      v-for="(card, i) in cards"
+      :key="card.key"
+      :card="card"
+      :style="{ 'z-index': i + 2 }"
+    />
+  </div>
+</template>
+<style scoped>
+.card-column {
+  min-width: 90px;
+  width: 90px;
+  min-height: 116px;
+  height: 116px;
+  border: 1px solid brown;
+  border-radius: 8px;
+  display: inline-flex;
+  flex-direction: column;
+  place-items: center;
+  position: relative;
+}
+.card {
+  position: absolute;
+  margin: 4px;
+}
+</style>

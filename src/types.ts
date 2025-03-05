@@ -1,10 +1,11 @@
 export interface Card {
   suit: Suit;
   face: Face;
+  key: number;
 }
 
-export type Suit = "H" | "D" | "C" | "S";
-export const suits: Suit[] = ["H", "D", "C", "S"];
+export type Suit = "♥" | "◆" | "♣" | "♠";
+export const suits: Suit[] = ["♥", "◆", "♣", "♠"];
 
 export type Face =
   | "A"
