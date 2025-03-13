@@ -1,17 +1,29 @@
 <script setup lang="ts">
-import { defineProps } from "vue";
-import type { Card } from "../types";
-import CardComponent from "./CardComponent.vue";
+import { defineProps, watch } from "vue";
+import type { Card } from "../card";
+import { MoveCard } from "../card";
 
-const { card, index } = defineProps<{
+const { card, index, x, y } = defineProps<{
   card: Card | undefined;
   index: number;
+  x: number;
+  y: number;
 }>();
+function placeCard() {
+  if (card) {
+    MoveCard(card, x + 4, y + 4, 2);
+  }
+}
+watch(
+  () => card,
+  () => placeCard()
+);
 </script>
 <template>
-  <div class="free-cell">
-    <CardComponent v-if="card?.face" class="card" :card="card" />
-  </div>
+  <div
+    class="free-cell"
+    :style="['left: ' + x + 'px', 'top: ' + y + 'px']"
+  ></div>
 </template>
 <style scoped>
 .free-cell {
@@ -24,7 +36,7 @@ const { card, index } = defineProps<{
   display: inline-flex;
   flex-direction: column;
   place-items: center;
-  position: relative;
+  position: absolute;
 }
 .card {
   margin: 4px;

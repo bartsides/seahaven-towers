@@ -1,20 +1,30 @@
 <script setup lang="ts">
-import { defineProps } from "vue";
-import type { Card } from "../types";
-import CardComponent from "./CardComponent.vue";
+import { defineProps, watch } from "vue";
+import type { Card } from "../card";
+import { MoveCard } from "../card";
 
-const { cards, index } = defineProps<{ cards: Card[]; index: number }>();
+const ySpacer = 28;
+
+const { cards, index, x, y, update } = defineProps<{
+  cards: Card[];
+  index: number;
+  x: number;
+  y: number;
+  update: number;
+}>();
+function placeCards() {
+  cards.forEach((card, i) => MoveCard(card, x + 4, y + 4 + i * ySpacer, i + 2));
+}
+watch(
+  () => update,
+  () => placeCards()
+);
 </script>
 <template>
-  <div class="card-column">
-    <CardComponent
-      class="card"
-      v-for="(card, i) in cards"
-      :key="card.key"
-      :card="card"
-      :style="{ top: i * 28 + 'px', 'z-index': i + 2 }"
-    />
-  </div>
+  <div
+    class="card-column"
+    :style="['left: ' + x + 'px', 'top: ' + y + 'px']"
+  ></div>
 </template>
 <style scoped>
 .card-column {
@@ -26,7 +36,7 @@ const { cards, index } = defineProps<{ cards: Card[]; index: number }>();
   display: inline-flex;
   flex-direction: column;
   place-items: center;
-  position: relative;
+  position: absolute;
 }
 .card {
   position: absolute;

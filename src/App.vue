@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
+import CardComponent from "./components/CardComponent.vue";
 import CardColumnComponent from "./components/CardColumnComponent.vue";
 import FoundationComponent from "./components/FoundationComponent.vue";
 import FreeCellComponent from "./components/FreeCellComponent.vue";
@@ -16,10 +17,25 @@ function getEmptyCardArray(num: number): Card[][] {
   return res;
 }
 
+let update = ref<number>(0);
 let deck = ref<Card[]>([]);
+let cards = ref<Card[]>([]);
 let columns = ref<Card[][]>(getEmptyCardArray(10));
 let freeCells = ref<Card[]>(Array(4));
 let foundations = ref<Card[][]>(getEmptyCardArray(4));
+const foundationSuits = ref<string[]>(["♥", "◆", "♣", "♠"]);
+const foundX = ref<number[]>([8, 112, 8 + 104 * 8, 8 + 104 * 9]);
+const colX = ref<number[]>(
+  Array(10)
+    .fill(0)
+    .map((v, i) => 8 + 104 * i)
+);
+const colY = 136;
+const freeCellX = ref<number[]>(
+  Array(4)
+    .fill(0)
+    .map((v, i) => 320 + 104 * i)
+);
 
 function drawCard(): Card | undefined {
   return deck.value.shift();
@@ -30,7 +46,7 @@ function getNewDeck(): Card[] {
   let i = 0;
   suits.forEach((suit) => {
     faces.forEach((face) => {
-      res.push({ suit, face, key: i++ });
+      res.push({ suit, face, pos: { x: 0, y: 0, z: 0 }, key: i++ });
     });
   });
   if (shuffleDeck) {
@@ -62,6 +78,7 @@ function deal() {
   if (card) {
     freeCells.value[2] = card;
   }
+  update.value = update.value + 1;
 }
 
 function newGame() {
@@ -69,6 +86,7 @@ function newGame() {
   freeCells.value = Array(4).fill([]);
   foundations.value = Array(4).fill([]);
   deck.value = getNewDeck();
+  cards.value = [...deck.value];
   deal();
 }
 
@@ -78,34 +96,47 @@ onMounted(() => {
 </script>
 <template>
   <div class="tableau">
-    <div class="top-row">
-      <FoundationComponent :cards="foundations[0]" :index="0" suit="♥" />
+    <div>{{ console.log(update) }}</div>
+    <div class="foundations">
       <FoundationComponent
-        :cards="foundations[1]"
-        :index="1"
-        suit="◆"
-        style="margin-right: 100px"
+        v-for="(foundation, i) in foundations"
+        :cards="foundations[i]"
+        :index="0"
+        :suit="foundationSuits[i]"
+        :x="foundX[i]"
+        :y="8"
+        :update="update"
       />
+    </div>
+    <div class="free-cells">
       <FreeCellComponent
         v-for="(freeCell, i) in freeCells"
         :key="i"
         :index="i"
         :card="freeCell"
+        class="free-cell"
+        :x="freeCellX[i]"
+        :y="8"
       />
-      <FoundationComponent
-        :cards="foundations[2]"
-        :index="2"
-        suit="♣"
-        style="margin-left: 100px"
-      />
-      <FoundationComponent :cards="foundations[3]" :index="3" suit="♠" />
     </div>
-    <div class="card-columns">
+    <div class="columns">
       <CardColumnComponent
         v-for="(cards, i) in columns"
         :key="i"
         :index="i"
         :cards="cards"
+        class="col"
+        :x="colX[i]"
+        :y="colY"
+        :update="update"
+      />
+    </div>
+    <div class="cards">
+      <CardComponent
+        v-for="(card, i) in cards"
+        :key="i"
+        :index="i"
+        :card="card"
       />
     </div>
   </div>
@@ -113,18 +144,12 @@ onMounted(() => {
 <style scoped>
 .tableau {
   background-color: green;
-  min-width: 1000px;
-  min-height: 800px;
+  min-width: 1080px;
+  min-height: 700px;
   width: 100%;
   height: 100%;
-}
-.top-row {
-  margin-top: 8px;
-  display: inline-flex;
-  gap: 8px;
-}
-.card-columns {
-  display: inline-flex;
-  gap: 8px;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 </style>

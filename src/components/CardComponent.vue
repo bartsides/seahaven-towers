@@ -1,17 +1,25 @@
 <script setup lang="ts">
 import { defineProps } from "vue";
-import { type Card } from "../types";
+import { type Card } from "../card";
 const { card } = defineProps<{ card: Card }>();
 </script>
 <template>
-  <div class="card" :class="{ red: card.suit === '♥' || card.suit === '◆' }">
+  <div
+    class="card"
+    :class="{ red: card.suit === '♥' || card.suit === '◆' }"
+    :style="[
+      'left: ' + card.pos.x + 'px',
+      'top: ' + card.pos.y + 'px',
+      'z-index: ' + card.pos.z,
+    ]"
+  >
     <div class="upper-left">{{ card.face }}{{ card.suit }}</div>
     <div class="bottom-right">{{ card.face }}{{ card.suit }}</div>
   </div>
 </template>
 <style scoped>
 .card {
-  position: relative;
+  position: absolute;
   width: 82px;
   height: 108px;
   display: flex;
@@ -21,6 +29,7 @@ const { card } = defineProps<{ card: Card }>();
   color: black;
   background-color: white;
   font-size: 20px;
+  transition: all 2s 1s;
 }
 .red {
   color: red;

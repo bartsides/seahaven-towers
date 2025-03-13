@@ -1,9 +1,3 @@
-export interface Card {
-  suit: Suit;
-  face: Face;
-  key: number;
-}
-
 export type Suit = "♥" | "◆" | "♣" | "♠";
 export const suits: Suit[] = ["♥", "◆", "♣", "♠"];
 
@@ -36,3 +30,9 @@ export const faces: Face[] = [
   "Q",
   "K",
 ];
+
+export interface Pos {
+  x: number;
+  y: number;
+  z: number;
+}
