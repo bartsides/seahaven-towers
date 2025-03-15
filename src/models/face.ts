@@ -1,6 +1,3 @@
-export type Suit = "♥" | "◆" | "♣" | "♠";
-export const suits: Suit[] = ["♥", "◆", "♣", "♠"];
-
 export type Face =
   | "A"
   | "2"
@@ -30,9 +27,3 @@ export const faces: Face[] = [
   "Q",
   "K",
 ];
-
-export interface Pos {
-  x: number;
-  y: number;
-  z: number;
-}

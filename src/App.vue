@@ -1,40 +1,30 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import CardComponent from "./components/CardComponent.vue";
 import CardColumnComponent from "./components/CardColumnComponent.vue";
+import CardComponent from "./components/CardComponent.vue";
 import FoundationComponent from "./components/FoundationComponent.vue";
 import FreeCellComponent from "./components/FreeCellComponent.vue";
-import { type Card, faces, suits } from "./types";
+import type { Card } from "./models/card";
+import type { Column } from "./models/column";
+import type { Config } from "./models/config";
+import { configs } from "./models/configs";
+import { faces } from "./models/face";
+import type { Foundation } from "./models/foundation";
+import type { Freecell } from "./models/freecell";
+import { suits } from "./models/suit";
 
-const shuffleDeck = true;
 const shuffleNumber = 5;
 
-function getEmptyCardArray(num: number): Card[][] {
-  const res: Card[][] = [];
-  for (let i = 0; i < num; i++) {
-    res.push([]);
-  }
-  return res;
-}
-
+let config = ref<Config>(configs[0]);
 let update = ref<number>(0);
 let deck = ref<Card[]>([]);
 let cards = ref<Card[]>([]);
-let columns = ref<Card[][]>(getEmptyCardArray(10));
-let freeCells = ref<Card[]>(Array(4));
-let foundations = ref<Card[][]>(getEmptyCardArray(4));
-const foundationSuits = ref<string[]>(["♥", "◆", "♣", "♠"]);
-const foundX = ref<number[]>([8, 112, 8 + 104 * 8, 8 + 104 * 9]);
-const colX = ref<number[]>(
-  Array(10)
-    .fill(0)
-    .map((v, i) => 8 + 104 * i)
+let columns = ref<Column[]>(JSON.parse(JSON.stringify(config.value.columns)));
+let freecells = ref<Freecell[]>(
+  JSON.parse(JSON.stringify(config.value.freecells))
 );
-const colY = 136;
-const freeCellX = ref<number[]>(
-  Array(4)
-    .fill(0)
-    .map((v, i) => 320 + 104 * i)
+let foundations = ref<Foundation[]>(
+  JSON.parse(JSON.stringify(config.value.foundations))
 );
 
 function drawCard(): Card | undefined {
@@ -45,16 +35,24 @@ function getNewDeck(): Card[] {
   const res: Card[] = [];
   let i = 0;
   suits.forEach((suit) => {
-    faces.forEach((face) => {
-      res.push({ suit, face, pos: { x: 0, y: 0, z: 0 }, key: i++ });
+    faces.forEach((face, value) => {
+      res.push({
+        suit,
+        face,
+        value,
+        pos: { x: 0, y: 0, z: 0 },
+        lastPos: { x: 0, y: 0, z: 0 },
+        key: i++,
+      });
     });
   });
-  if (shuffleDeck) {
-    for (let i = 0; i < Math.max(Math.random() * 10, shuffleNumber); i++) {
-      res.sort(() => Math.random() - 0.5);
-    }
-  }
   return res;
+}
+
+function shuffle(deck: Card[]) {
+  for (let i = 0; i < Math.max(Math.random() * 10, shuffleNumber); i++) {
+    deck.sort(() => Math.random() - 0.5);
+  }
 }
 
 function deal() {
@@ -63,80 +61,110 @@ function deal() {
       const card = drawCard();
       if (!card) break;
       const column = columns.value[col];
-      if (!column.length) {
-        columns.value[col] = [card];
+      if (!column.cards?.length) {
+        column.cards = [card];
       } else {
-        column.unshift(card);
+        column.cards.unshift(card);
       }
     }
   }
   let card = drawCard();
   if (card) {
-    freeCells.value[1] = card;
+    freecells.value[1].card = card;
   }
   card = drawCard();
   if (card) {
-    freeCells.value[2] = card;
+    freecells.value[2].card = card;
   }
-  update.value = update.value + 1;
+  updateCards();
 }
 
 function newGame() {
-  columns.value = Array(10).fill([]);
-  freeCells.value = Array(4).fill([]);
-  foundations.value = Array(4).fill([]);
+  columns.value = JSON.parse(JSON.stringify(config.value.columns));
+  freecells.value = JSON.parse(JSON.stringify(config.value.freecells));
+  foundations.value = JSON.parse(JSON.stringify(config.value.foundations));
   deck.value = getNewDeck();
   cards.value = [...deck.value];
+  shuffle(deck.value);
   deal();
 }
 
 onMounted(() => {
   newGame();
 });
+
+function updateCards() {
+  update.value = update.value + 1;
+}
+function dragStart(e: any) {
+  e.dataTransfer.dropEffect = "move";
+  e.dataTransfer.setData("index", e.target.attributes["index"].value);
+}
+function allowDrop(e: DragEvent) {
+  e.preventDefault();
+}
+function canDropColumn(card: Card, column: Column): boolean {
+  if (!column.cards.length) return false;
+  const topCard = column.cards[column.cards.length - 1];
+  return topCard.suit === card.suit && topCard.value - card.value === 1;
+}
+function dropCard(e: any) {
+  e.preventDefault();
+
+  const card = cards.value[e.dataTransfer.getData("index")];
+  const [targetType, targetNumber] = e.target.id.split("-");
+  if (targetType === "column") {
+    const column = columns.value[targetNumber];
+    if (canDropColumn(card, column)) {
+      // TODO: Remove card from original place
+      column.cards.push(card);
+      updateCards();
+    }
+  }
+}
 </script>
 <template>
   <div class="tableau">
-    <div>{{ console.log(update) }}</div>
     <div class="foundations">
       <FoundationComponent
         v-for="(foundation, i) in foundations"
-        :cards="foundations[i]"
-        :index="0"
-        :suit="foundationSuits[i]"
-        :x="foundX[i]"
-        :y="8"
-        :update="update"
-      />
-    </div>
-    <div class="free-cells">
-      <FreeCellComponent
-        v-for="(freeCell, i) in freeCells"
+        :foundation="foundation"
         :key="i"
         :index="i"
-        :card="freeCell"
-        class="free-cell"
-        :x="freeCellX[i]"
-        :y="8"
+        :update="update"
+        :id="'foundation' + i"
+      />
+    </div>
+    <div class="freecells">
+      <FreeCellComponent
+        v-for="(freecell, i) in freecells"
+        :freecell="freecell"
+        :key="i"
+        :index="i"
+        :id="'freecell-' + i"
       />
     </div>
     <div class="columns">
       <CardColumnComponent
-        v-for="(cards, i) in columns"
+        v-for="(column, i) in columns"
+        :column="column"
         :key="i"
         :index="i"
-        :cards="cards"
-        class="col"
-        :x="colX[i]"
-        :y="colY"
+        :id="'column-' + i"
         :update="update"
+        v-on:drop="dropCard"
+        v-on:dragover="allowDrop"
       />
     </div>
     <div class="cards">
       <CardComponent
         v-for="(card, i) in cards"
         :key="i"
-        :index="i"
+        :index="card.key"
         :card="card"
+        :id="'card' + i"
+        draggable="true"
+        v-on:dragstart="dragStart"
       />
     </div>
   </div>

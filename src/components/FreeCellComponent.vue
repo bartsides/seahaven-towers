@@ -1,28 +1,25 @@
 <script setup lang="ts">
 import { defineProps, watch } from "vue";
-import type { Card } from "../card";
-import { MoveCard } from "../card";
+import { MoveCard } from "../models/card";
+import type { Freecell } from "../models/freecell";
 
-const { card, index, x, y } = defineProps<{
-  card: Card | undefined;
-  index: number;
-  x: number;
-  y: number;
+const { freecell } = defineProps<{
+  freecell: Freecell;
 }>();
 function placeCard() {
-  if (card) {
-    MoveCard(card, x + 4, y + 4, 2);
+  if (freecell.card) {
+    MoveCard(freecell.card, freecell.x + 4, freecell.y + 4, 2);
   }
 }
 watch(
-  () => card,
+  () => freecell.card,
   () => placeCard()
 );
 </script>
 <template>
   <div
     class="free-cell"
-    :style="['left: ' + x + 'px', 'top: ' + y + 'px']"
+    :style="['left: ' + freecell.x + 'px', 'top: ' + freecell.y + 'px']"
   ></div>
 </template>
 <style scoped>

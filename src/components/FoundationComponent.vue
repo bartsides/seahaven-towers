@@ -1,20 +1,15 @@
 <script setup lang="ts">
 import { defineProps, watch } from "vue";
-import type { Card, Suit } from "../types";
+import { MoveCard } from "../models/card";
+import type { Foundation } from "../models/foundation";
 
-const { cards, index, suit, x, y, update } = defineProps<{
-  cards: Card[];
-  index: number;
-  suit: Suit;
-  x: number;
-  y: number;
+const { foundation, update } = defineProps<{
+  foundation: Foundation;
   update: number;
 }>();
 function placeCards() {
-  cards.forEach((card, i) => {
-    card.pos.x = x + 4;
-    card.pos.y = y + 4;
-    card.pos.z = i + 2;
+  foundation.cards.forEach((card, i) => {
+    MoveCard(card, foundation.x + 4, foundation.y + 4, i + 2);
   });
 }
 watch(
@@ -25,7 +20,7 @@ watch(
 <template>
   <div
     class="foundation"
-    :style="['left: ' + x + 'px', 'top: ' + y + 'px']"
+    :style="['left: ' + foundation.x + 'px', 'top: ' + foundation.y + 'px']"
   ></div>
 </template>
 <style scoped>

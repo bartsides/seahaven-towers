@@ -1,8 +1,11 @@
-import type { Face, Pos, Suit } from "./types";
+import type { Face } from "./face";
+import type { Pos } from "./pos";
+import type { Suit } from "./suit";
 
 export interface Card {
   suit: Suit;
   face: Face;
+  value: number;
   key: number;
   pos: Pos;
   lastPos: Pos;

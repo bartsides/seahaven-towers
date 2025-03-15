@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { defineProps } from "vue";
-import { type Card } from "../card";
+import { type Card } from "../models/card";
 const { card } = defineProps<{ card: Card }>();
 </script>
 <template>

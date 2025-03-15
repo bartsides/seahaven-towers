@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import { defineProps, watch } from "vue";
-import type { Card } from "../card";
-import { MoveCard } from "../card";
+import { MoveCard } from "../models/card";
+import type { Column } from "../models/column";
 
 const ySpacer = 28;
 
-const { cards, index, x, y, update } = defineProps<{
-  cards: Card[];
-  index: number;
-  x: number;
-  y: number;
+const { column, update } = defineProps<{
+  column: Column;
   update: number;
 }>();
 function placeCards() {
-  cards.forEach((card, i) => MoveCard(card, x + 4, y + 4 + i * ySpacer, i + 2));
+  column.cards.forEach((card, i) =>
+    MoveCard(card, column.x + 4, column.y + 4 + i * ySpacer, i + 2)
+  );
 }
 watch(
   () => update,
@@ -23,7 +22,7 @@ watch(
 <template>
   <div
     class="card-column"
-    :style="['left: ' + x + 'px', 'top: ' + y + 'px']"
+    :style="['left: ' + column.x + 'px', 'top: ' + column.y + 'px']"
   ></div>
 </template>
 <style scoped>
