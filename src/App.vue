@@ -4,7 +4,7 @@ import CardColumnComponent from "./components/CardColumnComponent.vue";
 import CardComponent from "./components/CardComponent.vue";
 import FoundationComponent from "./components/FoundationComponent.vue";
 import FreeCellComponent from "./components/FreeCellComponent.vue";
-import type { Card } from "./models/card";
+import { moveCard, type Card, type DeckHolder } from "./models/card";
 import type { Column } from "./models/column";
 import type { Config } from "./models/config";
 import { configs } from "./models/configs";
@@ -43,6 +43,8 @@ function getNewDeck(): Card[] {
         pos: { x: 0, y: 0, z: 0 },
         lastPos: { x: 0, y: 0, z: 0 },
         key: i++,
+        location: "",
+        dragging: false,
       });
     });
   });
@@ -61,6 +63,7 @@ function deal() {
       const card = drawCard();
       if (!card) break;
       const column = columns.value[col];
+      card.location = column.name;
       if (!column.cards?.length) {
         column.cards = [card];
       } else {
@@ -70,11 +73,15 @@ function deal() {
   }
   let card = drawCard();
   if (card) {
-    freecells.value[1].card = card;
+    const freecell = freecells.value[1];
+    freecell.cards = [card];
+    card.location = freecell.name;
   }
   card = drawCard();
   if (card) {
-    freecells.value[2].card = card;
+    const freecell = freecells.value[2];
+    freecell.cards = [card];
+    card.location = freecell.name;
   }
   updateCards();
 }
@@ -87,6 +94,7 @@ function newGame() {
   cards.value = [...deck.value];
   shuffle(deck.value);
   deal();
+  checkForFoundationMove();
 }
 
 onMounted(() => {
@@ -95,32 +103,156 @@ onMounted(() => {
 
 function updateCards() {
   update.value = update.value + 1;
+
+  // columns.value.forEach((c) =>
+  //   console.log("column" + c.index, debugPrintDeck(c.cards))
+  // );
+}
+function getSource(name: string): DeckHolder {
+  const [locationType, locationNumber] = name.split("-");
+  const index = Number(locationNumber);
+  if (locationType === "column") {
+    return columns.value[index];
+  }
+  if (locationType === "freecell") {
+    return freecells.value[index];
+  }
+  return foundations.value[index];
 }
 function dragStart(e: any) {
-  e.dataTransfer.dropEffect = "move";
-  e.dataTransfer.setData("index", e.target.attributes["index"].value);
+  const index = e.target.attributes["index"].value;
+  const card = cards.value[index];
+  card.dragging = true;
+}
+function dragging(e: any) {
+  //console.log("dragging", e);
+  const card = cards.value[Number(e.target.id.replace("card", ""))];
+  card.pos.x = e.screenX;
+  card.pos.y = e.screenY;
+  card.pos.z = 1000;
+  card.dragging = true;
+}
+function dragEnd(e: any) {
+  const x: number = e.clientX;
+  const y: number = e.clientY;
+  const card = cards.value[Number(e.target.id.replace("card", ""))];
+  const source = getSource(card.location);
+  card.dragging = false;
+  if (source.name.includes("foundation")) return;
+  let cardMoved = tryMoveToFreecell(card, source, x, y);
+  if (!cardMoved) cardMoved = tryMoveToColumn(card, source, x, y);
+  if (!cardMoved) cardMoved = tryMoveToFoundation(card, source, x, y);
+  if (!cardMoved) {
+    card.pos = { ...card.lastPos };
+    updateCards();
+    return;
+  }
+  updateCards();
+  checkForFoundationMove();
+}
+function checkForWin() {
+  if (columns.value.some((c) => c.cards.length)) return;
+  if (freecells.value.some((f) => f.cards.length)) return;
+  console.log("victory!!!!!");
+}
+function checkForFoundationMove() {
+  let moveFound = false;
+  for (let i = 0; i < columns.value.length; i++) {
+    const column = columns.value[i];
+    if (!column.cards.length) continue;
+    const topCard = column.cards[column.cards.length - 1];
+    for (let j = 0; j < foundations.value.length; j++) {
+      const foundation = foundations.value[j];
+      if (canDropFoundation(topCard, foundation)) {
+        moveFound = true;
+        moveCard(topCard, column, foundation);
+        break;
+      }
+    }
+    if (moveFound) break;
+  }
+  if (!moveFound) {
+    for (let i = 0; i < freecells.value.length; i++) {
+      const freecell = freecells.value[i];
+      if (!freecell.cards.length) continue;
+      const topCard = freecell.cards[freecell.cards.length - 1];
+      for (let j = 0; j < foundations.value.length; j++) {
+        const foundation = foundations.value[j];
+        if (canDropFoundation(topCard, foundation)) {
+          moveFound = true;
+          moveCard(topCard, freecell, foundation);
+          break;
+        }
+      }
+      if (moveFound) break;
+    }
+  }
+  if (moveFound) checkForFoundationMove();
+  else checkForWin();
+}
+function tryMoveToColumn(
+  card: Card,
+  source: DeckHolder,
+  x: number,
+  y: number
+): boolean {
+  const columnMatches = columns.value.filter(
+    (c) => x >= c.x && x <= c.x + c.width && y >= c.y && y <= c.y + c.height
+  );
+  if (!columnMatches.length) return false;
+  const column = columnMatches[0];
+  if (!canDropColumn(card, column)) return false;
+  moveCard(card, source, column);
+  return true;
+}
+function tryMoveToFreecell(
+  card: Card,
+  source: DeckHolder,
+  x: number,
+  y: number
+): boolean {
+  const freecellMatches = freecells.value.filter(
+    (f) => x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height
+  );
+  if (!freecellMatches.length) return false;
+  const freecell = freecellMatches[0];
+  if (!canDropFreecell(card, freecell)) return false;
+  moveCard(card, source, freecell);
+  return true;
+}
+function tryMoveToFoundation(
+  card: Card,
+  source: DeckHolder,
+  x: number,
+  y: number
+): boolean {
+  const foundationMatches = foundations.value.filter(
+    (f) => x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height
+  );
+  if (!foundationMatches.length) return false;
+  const foundation = foundationMatches[0];
+  if (!canDropFoundation(card, foundation)) return false;
+  moveCard(card, source, foundation);
+  return true;
 }
 function allowDrop(e: DragEvent) {
   e.preventDefault();
 }
 function canDropColumn(card: Card, column: Column): boolean {
-  if (!column.cards.length) return false;
-  const topCard = column.cards[column.cards.length - 1];
-  return topCard.suit === card.suit && topCard.value - card.value === 1;
-}
-function dropCard(e: any) {
-  e.preventDefault();
-
-  const card = cards.value[e.dataTransfer.getData("index")];
-  const [targetType, targetNumber] = e.target.id.split("-");
-  if (targetType === "column") {
-    const column = columns.value[targetNumber];
-    if (canDropColumn(card, column)) {
-      // TODO: Remove card from original place
-      column.cards.push(card);
-      updateCards();
-    }
+  if (!column.cards.length) {
+    return card.value === 12; // Kings can go into empty columns
   }
+  const topCard = column.cards[column.cards.length - 1];
+  return topCard.suit === card.suit; // && topCard.value - card.value === 1;
+}
+function canDropFreecell(card: Card, freecell: Freecell): boolean {
+  return !freecell.cards.length;
+}
+function canDropFoundation(card: Card, foundation: Foundation): boolean {
+  if (card.suit !== foundation.suit) return false;
+  if (!foundation.cards.length) return card.value === 0;
+  const topCard = foundation.cards[foundation.cards.length - 1];
+  return card.value - topCard.value === 1;
 }
 </script>
 <template>
@@ -132,7 +264,7 @@ function dropCard(e: any) {
         :key="i"
         :index="i"
         :update="update"
-        :id="'foundation' + i"
+        :id="foundation.name"
       />
     </div>
     <div class="freecells">
@@ -141,7 +273,8 @@ function dropCard(e: any) {
         :freecell="freecell"
         :key="i"
         :index="i"
-        :id="'freecell-' + i"
+        :update="update"
+        :id="freecell.name"
       />
     </div>
     <div class="columns">
@@ -150,9 +283,8 @@ function dropCard(e: any) {
         :column="column"
         :key="i"
         :index="i"
-        :id="'column-' + i"
+        :id="column.name"
         :update="update"
-        v-on:drop="dropCard"
         v-on:dragover="allowDrop"
       />
     </div>
@@ -165,6 +297,8 @@ function dropCard(e: any) {
         :id="'card' + i"
         draggable="true"
         v-on:dragstart="dragStart"
+        v-on:dragend="dragEnd"
+        v-on:drag="dragging"
       />
     </div>
   </div>

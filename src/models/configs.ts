@@ -9,34 +9,43 @@ export const configs: Config[] = [
       .fill(0)
       .map((_, i) => {
         return {
+          name: "column-" + i,
           cards: [],
           index: i,
           x: 8 + 104 * i,
           y: 136,
+          width: 90,
+          height: 500,
         };
       }),
     freecells: Array(4)
       .fill(0)
       .map((_, i) => {
         return {
-          card: undefined,
+          name: "freecell-" + i,
+          cards: [],
           index: i,
           x: 320 + 104 * i,
           y: 8,
+          width: 90,
+          height: 116,
         };
       }),
-    foundations: (<{ suit: Suit; val: number }[]>[
-      { suit: "♥", val: 0 },
-      { suit: "◆", val: 1 },
-      { suit: "♣", val: 8 },
-      { suit: "♠", val: 9 },
+    foundations: (<{ suit: Suit; x: number }[]>[
+      { suit: "♥", x: 8 },
+      { suit: "◆", x: 112 },
+      { suit: "♣", x: 840 },
+      { suit: "♠", x: 944 },
     ]).map((f, i) => {
       return <Foundation>{
+        name: "foundation-" + i,
         suit: f.suit,
         cards: [],
         index: i,
-        x: 8 + 112 * f.val,
+        x: f.x,
         y: 8,
+        width: 90,
+        height: 116,
       };
     }),
   },

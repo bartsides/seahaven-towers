@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { defineProps } from "vue";
+import { defineProps, watch } from "vue";
 import { type Card } from "../models/card";
 const { card } = defineProps<{ card: Card }>();
+watch(
+  () => card,
+  () => {}
+);
 </script>
 <template>
   <div
@@ -11,6 +15,7 @@ const { card } = defineProps<{ card: Card }>();
       'left: ' + card.pos.x + 'px',
       'top: ' + card.pos.y + 'px',
       'z-index: ' + card.pos.z,
+      'transition: ' + card.dragging ? '' : 'all 2s',
     ]"
   >
     <div class="upper-left">{{ card.face }}{{ card.suit }}</div>
@@ -29,7 +34,6 @@ const { card } = defineProps<{ card: Card }>();
   color: black;
   background-color: white;
   font-size: 20px;
-  transition: all 2s 1s;
 }
 .red {
   color: red;
