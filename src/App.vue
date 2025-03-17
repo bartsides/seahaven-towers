@@ -13,7 +13,7 @@ import type { Foundation } from "./models/foundation";
 import type { Freecell } from "./models/freecell";
 import { suits } from "./models/suit";
 
-const shuffleNumber = 5;
+const shuffleNumber = 10;
 
 let config = ref<Config>(configs[0]);
 let update = ref<number>(0);
@@ -26,6 +26,9 @@ let freecells = ref<Freecell[]>(
 let foundations = ref<Foundation[]>(
   JSON.parse(JSON.stringify(config.value.foundations))
 );
+let openFreecells = ref<number>(2);
+let selectedCards = ref<Card[]>([]);
+let selectedOffsetY = ref<number>(0);
 
 function drawCard(): Card | undefined {
   return deck.value.shift();
@@ -44,6 +47,7 @@ function getNewDeck(): Card[] {
         lastPos: { x: 0, y: 0, z: 0 },
         key: i++,
         location: "",
+        draggable: false,
         dragging: false,
       });
     });
@@ -103,10 +107,9 @@ onMounted(() => {
 
 function updateCards() {
   update.value = update.value + 1;
-
-  // columns.value.forEach((c) =>
-  //   console.log("column" + c.index, debugPrintDeck(c.cards))
-  // );
+  openFreecells.value = freecells.value.filter(
+    (f) => f.cards.length === 0
+  ).length;
 }
 function getSource(name: string): DeckHolder {
   const [locationType, locationNumber] = name.split("-");
@@ -120,28 +123,42 @@ function getSource(name: string): DeckHolder {
   return foundations.value[index];
 }
 function dragStart(e: any) {
+  e.dataTransfer.setDragImage(createEmptyImage(), 0, 0);
   const index = e.target.attributes["index"].value;
   const card = cards.value[index];
   card.dragging = true;
+  selectedOffsetY.value = card.pos.y - e.clientY;
+  const source = getSource(card.location);
+  selectedCards.value = [card];
+  let addRemainder = false;
+  for (let i = 0; i < source.cards.length; i++) {
+    const c = source.cards[i];
+    if (addRemainder) {
+      c.dragging = true;
+      selectedCards.value.push(c);
+    } else {
+      addRemainder = card.key === c.key;
+    }
+  }
 }
-function dragging(e: any) {
-  //console.log("dragging", e);
-  const card = cards.value[Number(e.target.id.replace("card", ""))];
-  card.pos.x = e.screenX;
-  card.pos.y = e.screenY;
-  card.pos.z = 1000;
-  card.dragging = true;
+function dragging(e: DragEvent) {
+  selectedCards.value.forEach((card, i) => {
+    card.pos.x = e.screenX - 41;
+    card.pos.y = e.screenY + i * 28 + selectedOffsetY.value;
+    card.pos.z = 1000 + i;
+  });
 }
 function dragEnd(e: any) {
   const x: number = e.clientX;
   const y: number = e.clientY;
-  const card = cards.value[Number(e.target.id.replace("card", ""))];
+  selectedCards.value.forEach((c) => (c.dragging = false));
+  const card = selectedCards.value[0];
   const source = getSource(card.location);
-  card.dragging = false;
-  if (source.name.includes("foundation")) return;
-  let cardMoved = tryMoveToFreecell(card, source, x, y);
-  if (!cardMoved) cardMoved = tryMoveToColumn(card, source, x, y);
-  if (!cardMoved) cardMoved = tryMoveToFoundation(card, source, x, y);
+  let cardMoved = tryMoveToFreecell(selectedCards.value, source, x, y);
+  if (!cardMoved)
+    cardMoved = tryMoveToColumn(selectedCards.value, source, x, y);
+  if (!cardMoved)
+    cardMoved = tryMoveToFoundation(selectedCards.value[0], source, x, y);
   if (!cardMoved) {
     card.pos = { ...card.lastPos };
     updateCards();
@@ -153,7 +170,12 @@ function dragEnd(e: any) {
 function checkForWin() {
   if (columns.value.some((c) => c.cards.length)) return;
   if (freecells.value.some((f) => f.cards.length)) return;
+  victory();
+}
+function victory() {
   console.log("victory!!!!!");
+  cards.value.forEach((c) => (c.draggable = false));
+  // TODO: Victory animation
 }
 function checkForFoundationMove() {
   let moveFound = false;
@@ -191,7 +213,7 @@ function checkForFoundationMove() {
   else checkForWin();
 }
 function tryMoveToColumn(
-  card: Card,
+  cards: Card[],
   source: DeckHolder,
   x: number,
   y: number
@@ -201,12 +223,12 @@ function tryMoveToColumn(
   );
   if (!columnMatches.length) return false;
   const column = columnMatches[0];
-  if (!canDropColumn(card, column)) return false;
-  moveCard(card, source, column);
+  if (!canDropColumn(cards[0], column)) return false;
+  cards.forEach((c) => moveCard(c, source, column));
   return true;
 }
 function tryMoveToFreecell(
-  card: Card,
+  cards: Card[],
   source: DeckHolder,
   x: number,
   y: number
@@ -216,8 +238,8 @@ function tryMoveToFreecell(
   );
   if (!freecellMatches.length) return false;
   const freecell = freecellMatches[0];
-  if (!canDropFreecell(card, freecell)) return false;
-  moveCard(card, source, freecell);
+  if (!canDropFreecell(cards, freecell)) return false;
+  cards.forEach((card) => moveCard(card, source, freecell));
   return true;
 }
 function tryMoveToFoundation(
@@ -240,12 +262,12 @@ function allowDrop(e: DragEvent) {
 }
 function canDropColumn(card: Card, column: Column): boolean {
   if (!column.cards.length) {
-    return card.value === 12; // Kings can go into empty columns
+    return card.value === 12; // Only kings can go into empty columns
   }
   const topCard = column.cards[column.cards.length - 1];
-  return topCard.suit === card.suit; // && topCard.value - card.value === 1;
+  return topCard.suit === card.suit && topCard.value - card.value === 1;
 }
-function canDropFreecell(card: Card, freecell: Freecell): boolean {
+function canDropFreecell(cards: Card[], freecell: Freecell): boolean {
   return !freecell.cards.length;
 }
 function canDropFoundation(card: Card, foundation: Foundation): boolean {
@@ -253,6 +275,19 @@ function canDropFoundation(card: Card, foundation: Foundation): boolean {
   if (!foundation.cards.length) return card.value === 0;
   const topCard = foundation.cards[foundation.cards.length - 1];
   return card.value - topCard.value === 1;
+}
+function createEmptyImage() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Unable to create 2d context");
+  ctx.fillStyle = "rgba(0, 0, 0, 0)";
+  ctx.fillRect(0, 0, 1, 1);
+  const img = new Image(1, 1);
+  img.src = canvas.toDataURL();
+
+  return img;
 }
 </script>
 <template>
@@ -285,6 +320,7 @@ function canDropFoundation(card: Card, foundation: Foundation): boolean {
         :index="i"
         :id="column.name"
         :update="update"
+        :open-freecells="openFreecells"
         v-on:dragover="allowDrop"
       />
     </div>
@@ -295,7 +331,7 @@ function canDropFoundation(card: Card, foundation: Foundation): boolean {
         :index="card.key"
         :card="card"
         :id="'card' + i"
-        draggable="true"
+        :draggable="card.draggable"
         v-on:dragstart="dragStart"
         v-on:dragend="dragEnd"
         v-on:drag="dragging"

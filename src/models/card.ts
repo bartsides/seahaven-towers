@@ -2,8 +2,6 @@ import type { Face } from "./face";
 import type { Pos } from "./pos";
 import type { Suit } from "./suit";
 
-const debug = false;
-
 export interface Card {
   suit: Suit;
   face: Face;
@@ -12,6 +10,7 @@ export interface Card {
   location: string;
   pos: Pos;
   lastPos: Pos;
+  draggable: boolean;
   dragging: boolean;
 }
 
@@ -29,13 +28,9 @@ export function debugPrintDeck(deck: Card[]) {
 }
 
 export function moveCard(card: Card, source: DeckHolder, dest: DeckHolder) {
-  if (debug) console.log("source before", debugPrintDeck(source.cards));
   source.cards = source.cards.filter((c) => c.key !== card.key);
-  if (debug) console.log("source after", debugPrintDeck(source.cards));
-  if (debug) console.log("dest before", debugPrintDeck(dest.cards));
   dest.cards.push(card);
   card.location = dest.name;
-  if (debug) console.log("dest after", debugPrintDeck(dest.cards));
 }
 
 export function positionCard(card: Card, x: number, y: number, z: number) {

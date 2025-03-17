@@ -1,17 +1,43 @@
 <script setup lang="ts">
 import { defineProps, watch } from "vue";
-import { positionCard } from "../models/card";
+import { positionCard, type Card } from "../models/card";
 import type { Column } from "../models/column";
 
 const ySpacer = 28;
 
-const { column, index, update } = defineProps<{
+const { column, update, openFreecells } = defineProps<{
   column: Column;
-  index: number;
   update: number;
+  openFreecells: number;
 }>();
+function setCardIsDraggable(card: Card, i: number, length: number) {
+  if (length === 1) {
+    card.draggable = true;
+    return;
+  }
+  const cardsAbove = length - 1 - i;
+  const enoughMoves = cardsAbove <= openFreecells;
+  if (!enoughMoves) {
+    card.draggable = false;
+    return;
+  }
+  for (let j = i + 1; j < length; j++) {
+    const c = column.cards[j];
+    if (c.suit !== card.suit) {
+      card.draggable = false;
+      return;
+    }
+    if (column.cards[j - 1].value - c.value !== 1) {
+      card.draggable = false;
+      return;
+    }
+  }
+  card.draggable = true;
+}
 function placeCards() {
+  const length = column.cards.length;
   column.cards.forEach((card, i) => {
+    setCardIsDraggable(card, i, length);
     positionCard(card, column.x + 4, column.y + 4 + i * ySpacer, i + 2);
   });
 }

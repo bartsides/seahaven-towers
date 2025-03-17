@@ -9,6 +9,7 @@ const { freecell, update } = defineProps<{
 }>();
 function placeCard() {
   freecell.cards.forEach((card, i) => {
+    card.draggable = true;
     positionCard(card, freecell.x + 4, freecell.y + 4, i + 2);
   });
 }

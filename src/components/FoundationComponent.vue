@@ -9,6 +9,7 @@ const { foundation, update } = defineProps<{
 }>();
 function placeCards() {
   foundation.cards.forEach((card, i) => {
+    card.draggable = false;
     positionCard(card, foundation.x + 4, foundation.y + 4, i + 2);
   });
 }
