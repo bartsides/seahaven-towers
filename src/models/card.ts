@@ -19,21 +19,15 @@ export interface DeckHolder {
   cards: Card[];
 }
 
+export function positionCard(card: Card, x: number, y: number, z: number) {
+  card.pos = { x, y, z };
+  card.lastPos = { x, y, z };
+}
+
 export function debugPrintCard(card: Card) {
   return `${card.face}${card.suit}`;
 }
 
 export function debugPrintDeck(deck: Card[]) {
   return deck.map(debugPrintCard).join(",");
-}
-
-export function moveCard(card: Card, source: DeckHolder, dest: DeckHolder) {
-  source.cards = source.cards.filter((c) => c.key !== card.key);
-  dest.cards.push(card);
-  card.location = dest.name;
-}
-
-export function positionCard(card: Card, x: number, y: number, z: number) {
-  card.pos = { x, y, z };
-  card.lastPos = { x, y, z };
 }

@@ -6,105 +6,34 @@ import FoundationComponent from "./components/FoundationComponent.vue";
 import FreeCellComponent from "./components/FreeCellComponent.vue";
 import { configs } from "./data/configs";
 import { rules as defaultRules } from "./data/rules";
-import { moveCard, type Card, type DeckHolder } from "./models/card";
+import { type Card, type DeckHolder } from "./models/card";
 import type { Column } from "./models/column";
-import type { ColumnRule } from "./models/columnRule";
-import type { Config } from "./models/config";
-import { faces } from "./models/face";
 import type { Foundation } from "./models/foundation";
-import type { FoundationRule } from "./models/foundationRule";
 import type { Freecell } from "./models/freecell";
-import type { FreecellRule } from "./models/freecellRule";
+import { Game } from "./models/game";
 import type { Rule } from "./models/rule";
-import { suits } from "./models/suit";
 
-const shuffleNumber = 10;
+const game = ref<Game>(new Game(configs[0], defaultRules));
 
-let config = ref<Config>(configs[0]);
 let rules = ref<Rule[]>(defaultRules);
 let update = ref<number>(0);
 let deck = ref<Card[]>([]);
 let cards = ref<Card[]>([]);
-let columns = ref<Column[]>(JSON.parse(JSON.stringify(config.value.columns)));
-let freecells = ref<Freecell[]>(
-  JSON.parse(JSON.stringify(config.value.freecells))
-);
-let foundations = ref<Foundation[]>(
-  JSON.parse(JSON.stringify(config.value.foundations))
-);
+let columns = ref<Column[]>([]);
+let freecells = ref<Freecell[]>([]);
+let foundations = ref<Foundation[]>([]);
 let openFreecells = ref<number>(2);
 let selectedCards = ref<Card[]>([]);
 let selectedOffsetY = ref<number>(0);
 
-function drawCard(): Card | undefined {
-  return deck.value.shift();
-}
-
-function getNewDeck(): Card[] {
-  const res: Card[] = [];
-  let i = 0;
-  suits.forEach((suit) => {
-    faces.forEach((face, value) => {
-      res.push({
-        suit,
-        face,
-        value,
-        pos: { x: 0, y: 0, z: 0 },
-        lastPos: { x: 0, y: 0, z: 0 },
-        key: i++,
-        location: "",
-        draggable: false,
-        dragging: false,
-      });
-    });
-  });
-  return res;
-}
-
-function shuffle(deck: Card[]) {
-  for (let i = 0; i < Math.max(Math.random() * 10, shuffleNumber); i++) {
-    deck.sort(() => Math.random() - 0.5);
-  }
-}
-
-function deal() {
-  for (let row = 0; row < 5; row++) {
-    for (let col = 0; col < 10; col++) {
-      const card = drawCard();
-      if (!card) break;
-      const column = columns.value[col];
-      card.location = column.name;
-      if (!column.cards?.length) {
-        column.cards = [card];
-      } else {
-        column.cards.unshift(card);
-      }
-    }
-  }
-  let card = drawCard();
-  if (card) {
-    const freecell = freecells.value[1];
-    freecell.cards = [card];
-    card.location = freecell.name;
-  }
-  card = drawCard();
-  if (card) {
-    const freecell = freecells.value[2];
-    freecell.cards = [card];
-    card.location = freecell.name;
-  }
-  updateCards();
-}
-
 function newGame() {
-  columns.value = JSON.parse(JSON.stringify(config.value.columns));
-  freecells.value = JSON.parse(JSON.stringify(config.value.freecells));
-  foundations.value = JSON.parse(JSON.stringify(config.value.foundations));
-  deck.value = getNewDeck();
-  cards.value = [...deck.value];
-  shuffle(deck.value);
-  deal();
-  checkForFoundationMove();
+  game.value.newGame();
+  deck.value = game.value.deck;
+  cards.value = game.value.cards;
+  columns.value = game.value.columns;
+  freecells.value = game.value.freecells;
+  foundations.value = game.value.foundations;
+  setTimeout(() => updateCards(), 50);
 }
 
 onMounted(() => {
@@ -113,7 +42,7 @@ onMounted(() => {
 
 function updateCards() {
   update.value = update.value + 1;
-  openFreecells.value = freecells.value.filter(
+  openFreecells.value = game.value.freecells.filter(
     (f) => f.cards.length === 0
   ).length;
 }
@@ -126,6 +55,8 @@ function getSource(name: string): DeckHolder {
 }
 function dragStart(e: any) {
   e.dataTransfer.setDragImage(createEmptyImage(), 0, 0);
+  e.dataTransfer.effectAllowed = "copyMove";
+  e.dataTransfer.dropEffect = "copy";
   const index = e.target.attributes["index"].value;
   const card = cards.value[index];
   card.dragging = true;
@@ -156,7 +87,7 @@ function dragEnd(e: any) {
   selectedCards.value.forEach((c) => (c.dragging = false));
   const card = selectedCards.value[0];
   const source = getSource(card.location);
-  let cardMoved = tryMoveToFreecell(
+  let cardMoved = game.value.tryMoveToFreecell(
     selectedCards.value,
     source,
     x,
@@ -164,138 +95,19 @@ function dragEnd(e: any) {
     rules.value
   );
   if (!cardMoved)
-    cardMoved = tryMoveToColumn(selectedCards.value, source, x, y);
+    cardMoved = game.value.tryMoveToColumn(selectedCards.value, source, x, y);
   if (!cardMoved)
-    cardMoved = tryMoveToFoundation(selectedCards.value[0], source, x, y);
-  if (!cardMoved) {
-    card.pos = { ...card.lastPos };
-    updateCards();
-    return;
-  }
+    cardMoved = game.value.tryMoveToFoundation(
+      selectedCards.value[0],
+      source,
+      x,
+      y
+    );
+  if (!cardMoved) card.pos = { ...card.lastPos };
   updateCards();
-  checkForFoundationMove();
-}
-function checkForWin() {
-  if (columns.value.some((c) => c.cards.length)) return;
-  if (freecells.value.some((f) => f.cards.length)) return;
-  victory();
-}
-function victory() {
-  console.log("victory!!!!!");
-  cards.value.forEach((c) => (c.draggable = false));
-  // TODO: Victory animation
-}
-function checkForFoundationMove() {
-  let moveFound = false;
-  for (let i = 0; i < columns.value.length; i++) {
-    const column = columns.value[i];
-    if (!column.cards.length) continue;
-    const topCard = column.cards[column.cards.length - 1];
-    for (let j = 0; j < foundations.value.length; j++) {
-      const foundation = foundations.value[j];
-      if (canDropFoundation(topCard, foundation, rules.value)) {
-        moveFound = true;
-        moveCard(topCard, column, foundation);
-        break;
-      }
-    }
-    if (moveFound) break;
-  }
-  if (!moveFound) {
-    for (let i = 0; i < freecells.value.length; i++) {
-      const freecell = freecells.value[i];
-      if (!freecell.cards.length) continue;
-      const topCard = freecell.cards[freecell.cards.length - 1];
-      for (let j = 0; j < foundations.value.length; j++) {
-        const foundation = foundations.value[j];
-        if (canDropFoundation(topCard, foundation, rules.value)) {
-          moveFound = true;
-          moveCard(topCard, freecell, foundation);
-          break;
-        }
-      }
-      if (moveFound) break;
-    }
-  }
-  if (moveFound) checkForFoundationMove();
-  else checkForWin();
-}
-function tryMoveToColumn(
-  cards: Card[],
-  source: DeckHolder,
-  x: number,
-  y: number
-): boolean {
-  const columnMatches = columns.value.filter(
-    (c) => x >= c.x && x <= c.x + c.width && y >= c.y && y <= c.y + c.height
-  );
-  if (!columnMatches.length) return false;
-  const column = columnMatches[0];
-  if (!canDropColumn(cards[0], column, rules.value)) return false;
-  cards.forEach((c) => moveCard(c, source, column));
-  return true;
-}
-function tryMoveToFreecell(
-  cards: Card[],
-  source: DeckHolder,
-  x: number,
-  y: number,
-  rules: Rule[]
-): boolean {
-  const freecellMatches = freecells.value.filter(
-    (f) => x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height
-  );
-  if (!freecellMatches.length) return false;
-  const freecell = freecellMatches[0];
-  if (!canDropFreecell(freecell, rules)) return false;
-  cards.forEach((card) => moveCard(card, source, freecell));
-  return true;
-}
-function tryMoveToFoundation(
-  card: Card,
-  source: DeckHolder,
-  x: number,
-  y: number
-): boolean {
-  const foundationMatches = foundations.value.filter(
-    (f) => x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height
-  );
-  if (!foundationMatches.length) return false;
-  const foundation = foundationMatches[0];
-  if (!canDropFoundation(card, foundation, rules.value)) return false;
-  moveCard(card, source, foundation);
-  return true;
 }
 function allowDrop(e: DragEvent) {
   e.preventDefault();
-}
-function canDropColumn(card: Card, column: Column, rules: Rule[]): boolean {
-  const columnRules = rules.filter((r) => r.type === "column");
-  for (let i = 0; i < columnRules.length; i++) {
-    const rule = <ColumnRule>columnRules[i];
-    if (!rule.eval(card, column)) return false;
-  }
-  return true;
-}
-function canDropFreecell(freecell: Freecell, rules: Rule[]): boolean {
-  const freecellRules = rules.filter((r) => r.type === "freecell");
-  for (let i = 0; i < freecellRules.length; i++) {
-    const rule = <FreecellRule>freecellRules[i];
-    if (!rule.eval(freecell)) return false;
-  }
-  return true;
-}
-function canDropFoundation(
-  card: Card,
-  foundation: Foundation,
-  rules: Rule[]
-): boolean {
-  const foundationRules = rules.filter((r) => r.type === "foundation");
-  for (let i = 0; i < foundationRules.length; i++) {
-    const rule = <FoundationRule>foundationRules[i];
-    if (!rule.eval(card, foundation)) return false;
-  }
-  return true;
 }
 function createEmptyImage() {
   const canvas = document.createElement("canvas");
@@ -321,6 +133,7 @@ function createEmptyImage() {
         :index="i"
         :update="update"
         :id="foundation.name"
+        v-on:dragover="allowDrop"
       />
     </div>
     <div class="freecells">
@@ -331,6 +144,7 @@ function createEmptyImage() {
         :index="i"
         :update="update"
         :id="freecell.name"
+        v-on:dragover="allowDrop"
       />
     </div>
     <div class="columns">

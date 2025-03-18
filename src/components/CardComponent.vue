@@ -16,6 +16,7 @@ watch(
       'top: ' + card.pos.y + 'px',
       'z-index: ' + card.pos.z,
       'transition: ' + card.dragging ? '' : 'all 2s',
+      card.draggable ? 'cursor: grab' : '',
     ]"
   >
     <div class="upper-left">{{ card.face }}{{ card.suit }}</div>
