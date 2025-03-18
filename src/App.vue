@@ -4,18 +4,24 @@ import CardColumnComponent from "./components/CardColumnComponent.vue";
 import CardComponent from "./components/CardComponent.vue";
 import FoundationComponent from "./components/FoundationComponent.vue";
 import FreeCellComponent from "./components/FreeCellComponent.vue";
+import { configs } from "./data/configs";
+import { rules as defaultRules } from "./data/rules";
 import { moveCard, type Card, type DeckHolder } from "./models/card";
 import type { Column } from "./models/column";
+import type { ColumnRule } from "./models/columnRule";
 import type { Config } from "./models/config";
-import { configs } from "./models/configs";
 import { faces } from "./models/face";
 import type { Foundation } from "./models/foundation";
+import type { FoundationRule } from "./models/foundationRule";
 import type { Freecell } from "./models/freecell";
+import type { FreecellRule } from "./models/freecellRule";
+import type { Rule } from "./models/rule";
 import { suits } from "./models/suit";
 
 const shuffleNumber = 10;
 
 let config = ref<Config>(configs[0]);
+let rules = ref<Rule[]>(defaultRules);
 let update = ref<number>(0);
 let deck = ref<Card[]>([]);
 let cards = ref<Card[]>([]);
@@ -114,12 +120,8 @@ function updateCards() {
 function getSource(name: string): DeckHolder {
   const [locationType, locationNumber] = name.split("-");
   const index = Number(locationNumber);
-  if (locationType === "column") {
-    return columns.value[index];
-  }
-  if (locationType === "freecell") {
-    return freecells.value[index];
-  }
+  if (locationType === "column") return columns.value[index];
+  if (locationType === "freecell") return freecells.value[index];
   return foundations.value[index];
 }
 function dragStart(e: any) {
@@ -154,7 +156,13 @@ function dragEnd(e: any) {
   selectedCards.value.forEach((c) => (c.dragging = false));
   const card = selectedCards.value[0];
   const source = getSource(card.location);
-  let cardMoved = tryMoveToFreecell(selectedCards.value, source, x, y);
+  let cardMoved = tryMoveToFreecell(
+    selectedCards.value,
+    source,
+    x,
+    y,
+    rules.value
+  );
   if (!cardMoved)
     cardMoved = tryMoveToColumn(selectedCards.value, source, x, y);
   if (!cardMoved)
@@ -185,7 +193,7 @@ function checkForFoundationMove() {
     const topCard = column.cards[column.cards.length - 1];
     for (let j = 0; j < foundations.value.length; j++) {
       const foundation = foundations.value[j];
-      if (canDropFoundation(topCard, foundation)) {
+      if (canDropFoundation(topCard, foundation, rules.value)) {
         moveFound = true;
         moveCard(topCard, column, foundation);
         break;
@@ -200,7 +208,7 @@ function checkForFoundationMove() {
       const topCard = freecell.cards[freecell.cards.length - 1];
       for (let j = 0; j < foundations.value.length; j++) {
         const foundation = foundations.value[j];
-        if (canDropFoundation(topCard, foundation)) {
+        if (canDropFoundation(topCard, foundation, rules.value)) {
           moveFound = true;
           moveCard(topCard, freecell, foundation);
           break;
@@ -223,7 +231,7 @@ function tryMoveToColumn(
   );
   if (!columnMatches.length) return false;
   const column = columnMatches[0];
-  if (!canDropColumn(cards[0], column)) return false;
+  if (!canDropColumn(cards[0], column, rules.value)) return false;
   cards.forEach((c) => moveCard(c, source, column));
   return true;
 }
@@ -231,14 +239,15 @@ function tryMoveToFreecell(
   cards: Card[],
   source: DeckHolder,
   x: number,
-  y: number
+  y: number,
+  rules: Rule[]
 ): boolean {
   const freecellMatches = freecells.value.filter(
     (f) => x >= f.x && x <= f.x + f.width && y >= f.y && y <= f.y + f.height
   );
   if (!freecellMatches.length) return false;
   const freecell = freecellMatches[0];
-  if (!canDropFreecell(cards, freecell)) return false;
+  if (!canDropFreecell(freecell, rules)) return false;
   cards.forEach((card) => moveCard(card, source, freecell));
   return true;
 }
@@ -253,28 +262,40 @@ function tryMoveToFoundation(
   );
   if (!foundationMatches.length) return false;
   const foundation = foundationMatches[0];
-  if (!canDropFoundation(card, foundation)) return false;
+  if (!canDropFoundation(card, foundation, rules.value)) return false;
   moveCard(card, source, foundation);
   return true;
 }
 function allowDrop(e: DragEvent) {
   e.preventDefault();
 }
-function canDropColumn(card: Card, column: Column): boolean {
-  if (!column.cards.length) {
-    return card.value === 12; // Only kings can go into empty columns
+function canDropColumn(card: Card, column: Column, rules: Rule[]): boolean {
+  const columnRules = rules.filter((r) => r.type === "column");
+  for (let i = 0; i < columnRules.length; i++) {
+    const rule = <ColumnRule>columnRules[i];
+    if (!rule.eval(card, column)) return false;
   }
-  const topCard = column.cards[column.cards.length - 1];
-  return topCard.suit === card.suit && topCard.value - card.value === 1;
+  return true;
 }
-function canDropFreecell(cards: Card[], freecell: Freecell): boolean {
-  return !freecell.cards.length;
+function canDropFreecell(freecell: Freecell, rules: Rule[]): boolean {
+  const freecellRules = rules.filter((r) => r.type === "freecell");
+  for (let i = 0; i < freecellRules.length; i++) {
+    const rule = <FreecellRule>freecellRules[i];
+    if (!rule.eval(freecell)) return false;
+  }
+  return true;
 }
-function canDropFoundation(card: Card, foundation: Foundation): boolean {
-  if (card.suit !== foundation.suit) return false;
-  if (!foundation.cards.length) return card.value === 0;
-  const topCard = foundation.cards[foundation.cards.length - 1];
-  return card.value - topCard.value === 1;
+function canDropFoundation(
+  card: Card,
+  foundation: Foundation,
+  rules: Rule[]
+): boolean {
+  const foundationRules = rules.filter((r) => r.type === "foundation");
+  for (let i = 0; i < foundationRules.length; i++) {
+    const rule = <FoundationRule>foundationRules[i];
+    if (!rule.eval(card, foundation)) return false;
+  }
+  return true;
 }
 function createEmptyImage() {
   const canvas = document.createElement("canvas");

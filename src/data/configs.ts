@@ -1,6 +1,6 @@
-import type { Config } from "./config";
-import type { Foundation } from "./foundation";
-import type { Suit } from "./suit";
+import type { Config } from "../models/config";
+import type { Foundation } from "../models/foundation";
+import type { Suit } from "../models/suit";
 
 export const configs: Config[] = [
   {
