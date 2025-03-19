@@ -4,36 +4,52 @@ import type { Foundation } from "../models/foundation";
 import type { Freecell } from "../models/freecell";
 import type { Rule } from "../models/rule";
 
+// TODO: Add rules about multiple cards going to a column
 export const rules: Rule[] = [
   {
-    name: "Max one freecell card",
+    name: "Freecells hold one card max",
     type: "freecell",
-    eval(freecell: Freecell) {
+    eval(cards: Card[], freecell: Freecell) {
       return freecell.cards.length <= 0;
+    },
+  },
+  {
+    name: "Only one card can be placed on a freecell",
+    type: "freecell",
+    eval(cards: Card[], freecell: Freecell) {
+      return cards.length === 1;
+    },
+  },
+  {
+    name: "Cards must be placed on a foundation one at a time",
+    type: "foundation",
+    eval(cards: Card[], foundation: Foundation) {
+      return cards.length === 1;
     },
   },
   {
     name: "Foundation suits must match",
     type: "foundation",
-    eval(card: Card, foundation: Foundation) {
-      return card.suit === foundation.suit;
+    eval(cards: Card[], foundation: Foundation) {
+      return cards.every((c) => c.suit === foundation.suit);
     },
   },
   {
     name: "Foundation must start with an ace",
     type: "foundation",
-    eval(card: Card, foundation: Foundation) {
-      if (!foundation.cards.length) return card.value === 0;
+    eval(cards: Card[], foundation: Foundation) {
+      if (!cards.length) return true;
+      if (!foundation.cards.length) return cards[0].value === 0;
       return true;
     },
   },
   {
     name: "Foundation cards must be laid low to high",
     type: "foundation",
-    eval(card: Card, foundation: Foundation) {
-      if (!foundation.cards.length) return true;
+    eval(cards: Card[], foundation: Foundation) {
+      if (!foundation.cards.length || !cards.length) return true;
       const topCard = foundation.cards[foundation.cards.length - 1];
-      return card.value - topCard.value === 1;
+      return cards[0].value - topCard.value === 1;
     },
   },
   {

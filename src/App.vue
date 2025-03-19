@@ -98,7 +98,7 @@ function dragEnd(e: any) {
     cardMoved = game.value.tryMoveToColumn(selectedCards.value, source, x, y);
   if (!cardMoved)
     cardMoved = game.value.tryMoveToFoundation(
-      selectedCards.value[0],
+      selectedCards.value,
       source,
       x,
       y

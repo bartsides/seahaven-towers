@@ -68,14 +68,14 @@ export class Game {
     );
     if (!freecellMatches.length) return false;
     const freecell = freecellMatches[0];
-    if (!this.canDropFreecell(freecell, rules)) return false;
+    if (!this.canDropFreecell(cards, freecell, rules)) return false;
     cards.forEach((card) => this.moveCard(card, source, freecell));
     this.checkForFoundationMove();
     return true;
   }
 
   public tryMoveToFoundation(
-    card: Card,
+    cards: Card[],
     source: DeckHolder,
     x: number,
     y: number
@@ -85,8 +85,8 @@ export class Game {
     );
     if (!foundationMatches.length) return false;
     const foundation = foundationMatches[0];
-    if (!this.canDropFoundation(card, foundation, this.rules)) return false;
-    this.moveCard(card, source, foundation);
+    if (!this.canDropFoundation(cards, foundation, this.rules)) return false;
+    cards.forEach((card) => this.moveCard(card, source, foundation));
     this.checkForFoundationMove();
     return true;
   }
@@ -158,7 +158,7 @@ export class Game {
       const topCard = column.cards[column.cards.length - 1];
       for (let j = 0; j < this.foundations.length; j++) {
         const foundation = this.foundations[j];
-        if (this.canDropFoundation(topCard, foundation, this.rules)) {
+        if (this.canDropFoundation([topCard], foundation, this.rules)) {
           moveFound = true;
           this.moveCard(topCard, column, foundation);
           break;
@@ -173,7 +173,7 @@ export class Game {
         const topCard = freecell.cards[freecell.cards.length - 1];
         for (let j = 0; j < this.foundations.length; j++) {
           const foundation = this.foundations[j];
-          if (this.canDropFoundation(topCard, foundation, this.rules)) {
+          if (this.canDropFoundation([topCard], foundation, this.rules)) {
             moveFound = true;
             this.moveCard(topCard, freecell, foundation);
             break;
@@ -201,24 +201,28 @@ export class Game {
     return true;
   }
 
-  private canDropFreecell(freecell: Freecell, rules: Rule[]): boolean {
+  private canDropFreecell(
+    cards: Card[],
+    freecell: Freecell,
+    rules: Rule[]
+  ): boolean {
     const freecellRules = rules.filter((r) => r.type === "freecell");
     for (let i = 0; i < freecellRules.length; i++) {
       const rule = <FreecellRule>freecellRules[i];
-      if (!rule.eval(freecell)) return false;
+      if (!rule.eval(cards, freecell)) return false;
     }
     return true;
   }
 
   private canDropFoundation(
-    card: Card,
+    cards: Card[],
     foundation: Foundation,
     rules: Rule[]
   ): boolean {
     const foundationRules = rules.filter((r) => r.type === "foundation");
     for (let i = 0; i < foundationRules.length; i++) {
       const rule = <FoundationRule>foundationRules[i];
-      if (!rule.eval(card, foundation)) return false;
+      if (!rule.eval(cards, foundation)) return false;
     }
     return true;
   }
