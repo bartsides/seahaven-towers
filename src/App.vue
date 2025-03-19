@@ -60,7 +60,6 @@ function dragStart(e: any) {
   e.dataTransfer.dropEffect = "copy";
   const index = e.target.attributes["index"].value;
   const card = cards.value[index];
-  card.dragging = true;
   selectedOffsetY.value = card.pos.y - e.clientY;
   const source = getSource(card.location);
   selectedCards.value = [card];
@@ -68,7 +67,6 @@ function dragStart(e: any) {
   for (let i = 0; i < source.cards.length; i++) {
     const c = source.cards[i];
     if (addRemainder) {
-      c.dragging = true;
       selectedCards.value.push(c);
     } else {
       addRemainder = card.key === c.key;
@@ -85,7 +83,6 @@ function dragging(e: DragEvent) {
 function dragEnd(e: any) {
   const x: number = e.clientX;
   const y: number = e.clientY;
-  selectedCards.value.forEach((c) => (c.dragging = false));
   const card = selectedCards.value[0];
   const source = getSource(card.location);
   let cardMoved = game.value.tryMoveToFreecell(
@@ -106,6 +103,7 @@ function dragEnd(e: any) {
     );
   if (!cardMoved) card.pos = { ...card.lastPos };
   updateCards();
+  selectedCards.value = [];
 }
 function allowDrop(e: DragEvent) {
   e.preventDefault();

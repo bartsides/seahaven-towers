@@ -11,7 +11,6 @@ export interface Card {
   pos: Pos;
   lastPos: Pos;
   draggable: boolean;
-  dragging: boolean;
 }
 
 export function positionCard(card: Card, x: number, y: number, z: number) {

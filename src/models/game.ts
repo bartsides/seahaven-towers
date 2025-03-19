@@ -109,7 +109,6 @@ export class Game {
           key: i++,
           location: "",
           draggable: false,
-          dragging: false,
         });
       });
     });
