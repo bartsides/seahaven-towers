@@ -1,4 +1,4 @@
-import { type Card, type DeckHolder } from "./card";
+import { type Card } from "./card";
 import type { Column } from "./column";
 import type { ColumnRule } from "./columnRule";
 import type { Config } from "./config";
@@ -7,6 +7,8 @@ import type { Foundation } from "./foundation";
 import type { FoundationRule } from "./foundationRule";
 import type { Freecell } from "./freecell";
 import type { FreecellRule } from "./freecellRule";
+import type { Location } from "./location";
+import type { Move } from "./move";
 import type { Rule } from "./rule";
 import { suits } from "./suit";
 
@@ -19,6 +21,7 @@ export class Game {
   public columns: Column[] = [];
   public freecells: Freecell[] = [];
   public foundations: Foundation[] = [];
+  public moves: Move[] = [];
 
   private shuffleTimes = 10;
 
@@ -29,6 +32,7 @@ export class Game {
   }
 
   public newGame() {
+    this.moves = [];
     this.columns = JSON.parse(JSON.stringify(this.config.columns));
     this.freecells = JSON.parse(JSON.stringify(this.config.freecells));
     this.foundations = JSON.parse(JSON.stringify(this.config.foundations));
@@ -41,7 +45,7 @@ export class Game {
 
   public tryMoveToColumn(
     cards: Card[],
-    source: DeckHolder,
+    source: Location,
     x: number,
     y: number
   ): boolean {
@@ -50,7 +54,7 @@ export class Game {
     );
     if (!columnMatches.length) return false;
     const column = columnMatches[0];
-    if (!this.canDropColumn(cards[0], column, this.rules)) return false;
+    if (!this.canDropColumn(cards, column, this.rules)) return false;
     cards.forEach((c) => this.moveCard(c, source, column));
     this.checkForFoundationMove();
     return true;
@@ -58,7 +62,7 @@ export class Game {
 
   public tryMoveToFreecell(
     cards: Card[],
-    source: DeckHolder,
+    source: Location,
     x: number,
     y: number,
     rules: Rule[]
@@ -76,7 +80,7 @@ export class Game {
 
   public tryMoveToFoundation(
     cards: Card[],
-    source: DeckHolder,
+    source: Location,
     x: number,
     y: number
   ): boolean {
@@ -192,11 +196,11 @@ export class Game {
     this.victory = true;
   }
 
-  private canDropColumn(card: Card, column: Column, rules: Rule[]): boolean {
+  private canDropColumn(cards: Card[], column: Column, rules: Rule[]): boolean {
     const columnRules = rules.filter((r) => r.type === "column");
     for (let i = 0; i < columnRules.length; i++) {
       const rule = <ColumnRule>columnRules[i];
-      if (!rule.eval(card, column)) return false;
+      if (!rule.eval(cards, column, this.freecells)) return false;
     }
     return true;
   }
@@ -227,9 +231,22 @@ export class Game {
     return true;
   }
 
-  private moveCard(card: Card, source: DeckHolder, dest: DeckHolder) {
+  private moveCard(
+    card: Card,
+    source: Location,
+    dest: Location,
+    createMove: boolean = true
+  ) {
+    if (createMove) this.moves.unshift({ card, source, dest });
     source.cards = source.cards.filter((c) => c.key !== card.key);
     dest.cards.push(card);
     card.location = dest.name;
+  }
+
+  public undoMove() {
+    if (!this.moves.length) return;
+    const move = this.moves.shift();
+    if (!move) return;
+    this.moveCard(move.card, move.dest, move.source, false);
   }
 }

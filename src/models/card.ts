@@ -14,11 +14,6 @@ export interface Card {
   dragging: boolean;
 }
 
-export interface DeckHolder {
-  name: string;
-  cards: Card[];
-}
-
 export function positionCard(card: Card, x: number, y: number, z: number) {
   card.pos = { x, y, z };
   card.lastPos = { x, y, z };

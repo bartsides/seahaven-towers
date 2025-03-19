@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, watch } from "vue";
+import { watch } from "vue";
 import { positionCard } from "../models/card";
 import type { Foundation } from "../models/foundation";
 

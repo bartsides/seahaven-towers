@@ -4,38 +4,44 @@ import type { Foundation } from "../models/foundation";
 import type { Freecell } from "../models/freecell";
 import type { Rule } from "../models/rule";
 
-// TODO: Add rules about multiple cards going to a column
+// Each rule is designed to check one specific detail.
+// If what is passed is outside of its purpose, pass the test.
 export const rules: Rule[] = [
   {
-    name: "Freecells hold one card max",
+    name: "Freecell Hold One Max",
+    description: "Freecells hold one card max",
     type: "freecell",
-    eval(cards: Card[], freecell: Freecell) {
+    eval(_: Card[], freecell: Freecell) {
       return freecell.cards.length <= 0;
     },
   },
   {
-    name: "Only one card can be placed on a freecell",
+    name: "Freecell Move One Max",
+    description: "Only one card can be placed on a freecell",
     type: "freecell",
-    eval(cards: Card[], freecell: Freecell) {
+    eval(cards: Card[], _: Freecell) {
       return cards.length === 1;
     },
   },
   {
-    name: "Cards must be placed on a foundation one at a time",
+    name: "Foundation Move One Max",
+    description: "Cards must be placed on a foundation one at a time",
     type: "foundation",
-    eval(cards: Card[], foundation: Foundation) {
+    eval(cards: Card[], _: Foundation) {
       return cards.length === 1;
     },
   },
   {
-    name: "Foundation suits must match",
+    name: "Foundation Suits",
+    description: "Foundation suits must match",
     type: "foundation",
     eval(cards: Card[], foundation: Foundation) {
       return cards.every((c) => c.suit === foundation.suit);
     },
   },
   {
-    name: "Foundation must start with an ace",
+    name: "Foundation Starts Ace",
+    description: "Foundation must start with an ace",
     type: "foundation",
     eval(cards: Card[], foundation: Foundation) {
       if (!cards.length) return true;
@@ -44,7 +50,8 @@ export const rules: Rule[] = [
     },
   },
   {
-    name: "Foundation cards must be laid low to high",
+    name: "Foundation Low to High",
+    description: "Foundation cards must be laid low to high",
     type: "foundation",
     eval(cards: Card[], foundation: Foundation) {
       if (!foundation.cards.length || !cards.length) return true;
@@ -53,27 +60,60 @@ export const rules: Rule[] = [
     },
   },
   {
-    name: "Only kings can go to empty columns",
+    name: "Column Starts King",
+    description: "Only kings can go to empty columns",
     type: "column",
-    eval(card: Card, column: Column) {
+    eval(cards: Card[], column: Column, _: Freecell[]) {
       if (column.cards.length) return true;
-      return card.value === 12;
+      return cards[0].value === 12;
     },
   },
   {
-    name: "Column cards must be laid high to low",
+    name: "Column Low to High",
+    description: "Column cards must be laid high to low",
     type: "column",
-    eval(card: Card, column: Column) {
+    eval(cards: Card[], column: Column, _: Freecell[]) {
       if (!column.cards.length) return true;
-      return column.cards[column.cards.length - 1].value - card.value === 1;
+      if (column.cards[column.cards.length - 1].value - cards[0].value !== 1)
+        return false;
+      for (let i = 1; i < cards.length; i++) {
+        if (cards[i - 1].value - cards[i].value !== 1) return false;
+      }
+      return true;
     },
   },
   {
-    name: "Column cards must be laid same suit",
+    name: "Column Same Suit",
+    description: "Column cards must be laid same suit",
     type: "column",
-    eval(card: Card, column: Column) {
+    eval(cards: Card[], column: Column, _: Freecell[]) {
       if (!column.cards.length) return true;
-      return card.suit === column.cards[column.cards.length - 1].suit;
+      return cards.every(
+        (card) => card.suit === column.cards[column.cards.length - 1].suit
+      );
+    },
+  },
+  {
+    name: "Column Move Multiple if Open Freecells",
+    description:
+      "Multiple cards can only be moved to a column if there are enough empty freecell spots",
+    type: "column",
+    eval(cards: Card[], column: Column, freecells: Freecell[]) {
+      if (!column.cards.length) return true;
+      const openFreecells = freecells.filter((f) => !f.cards.length).length;
+      return cards.length - 1 <= openFreecells;
+    },
+  },
+  {
+    name: "Column Move Multiple Sequential",
+    description:
+      "Multiple cards can only be moved to a column if they are sequential (high to low)",
+    type: "column",
+    eval(cards: Card[], _column: Column, _freecells: Freecell[]) {
+      for (let i = 1; i < cards.length; i++) {
+        if (cards[i - 1].value - cards[i].value !== 1) return false;
+      }
+      return true;
     },
   },
 ];

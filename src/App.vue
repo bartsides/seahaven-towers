@@ -6,11 +6,12 @@ import FoundationComponent from "./components/FoundationComponent.vue";
 import FreeCellComponent from "./components/FreeCellComponent.vue";
 import { configs } from "./data/configs";
 import { rules as defaultRules } from "./data/rules";
-import { type Card, type DeckHolder } from "./models/card";
+import { type Card } from "./models/card";
 import type { Column } from "./models/column";
 import type { Foundation } from "./models/foundation";
 import type { Freecell } from "./models/freecell";
 import { Game } from "./models/game";
+import type { Location } from "./models/location";
 import type { Rule } from "./models/rule";
 
 const game = ref<Game>(new Game(configs[0], defaultRules));
@@ -46,7 +47,7 @@ function updateCards() {
     (f) => f.cards.length === 0
   ).length;
 }
-function getSource(name: string): DeckHolder {
+function getSource(name: string): Location {
   const [locationType, locationNumber] = name.split("-");
   const index = Number(locationNumber);
   if (locationType === "column") return columns.value[index];
@@ -122,6 +123,10 @@ function createEmptyImage() {
 
   return img;
 }
+function undo() {
+  game.value.undoMove();
+  updateCards();
+}
 </script>
 <template>
   <div class="tableau">
@@ -172,6 +177,10 @@ function createEmptyImage() {
         v-on:drag="dragging"
       />
     </div>
+    <div class="buttons">
+      <button @click="newGame()">New Game</button>
+      <button @click="undo()">Undo</button>
+    </div>
   </div>
 </template>
 <style scoped>
@@ -184,5 +193,13 @@ function createEmptyImage() {
   position: absolute;
   top: 0;
   left: 0;
+}
+.buttons {
+  position: absolute;
+  top: 8px;
+  left: 1046px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
 }
 </style>

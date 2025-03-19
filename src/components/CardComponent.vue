@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, watch } from "vue";
+import { watch } from "vue";
 import { type Card } from "../models/card";
 const { card } = defineProps<{ card: Card }>();
 watch(
