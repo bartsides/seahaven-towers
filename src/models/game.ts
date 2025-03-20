@@ -10,7 +10,7 @@ import type { FreecellRule } from "./freecellRule";
 import type { Location } from "./location";
 import type { Move } from "./move";
 import type { Rule } from "./rule";
-import { suits } from "./suit";
+import { suits, type Suit } from "./suit";
 
 export class Game {
   public victory = false;
@@ -95,6 +95,33 @@ export class Game {
     return true;
   }
 
+  public undoMove() {
+    if (!this.moves.length) return;
+    const move = this.moves.shift();
+    if (!move) return;
+    this.moveCard(move.card, move.dest, move.source, false);
+  }
+
+  public highlightNextFoundationCards() {
+    const nextFoundationCards: { suit: Suit; value: number }[] = [];
+    for (let f = 0; f < this.foundations.length; f++) {
+      const foundation = this.foundations[f];
+      if (!foundation.cards.length) {
+        nextFoundationCards.push({ suit: foundation.suit, value: 0 });
+        continue;
+      }
+      const card = foundation.cards[foundation.cards.length - 1];
+      if (card.value === 12) continue;
+      nextFoundationCards.push({ suit: card.suit, value: card.value + 1 });
+    }
+
+    this.cards.forEach((card) => {
+      card.highlight = nextFoundationCards.some(
+        (c) => c.suit === card.suit && c.value === card.value
+      );
+    });
+  }
+
   private getNewDeck(): Card[] {
     const res: Card[] = [];
     let i = 0;
@@ -109,6 +136,7 @@ export class Game {
           key: i++,
           location: "",
           draggable: false,
+          highlight: false,
         });
       });
     });
@@ -240,12 +268,5 @@ export class Game {
     source.cards = source.cards.filter((c) => c.key !== card.key);
     dest.cards.push(card);
     card.location = dest.name;
-  }
-
-  public undoMove() {
-    if (!this.moves.length) return;
-    const move = this.moves.shift();
-    if (!move) return;
-    this.moveCard(move.card, move.dest, move.source, false);
   }
 }

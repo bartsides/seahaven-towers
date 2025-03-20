@@ -46,6 +46,7 @@ function updateCards() {
   openFreecells.value = game.value.freecells.filter(
     (f) => f.cards.length === 0
   ).length;
+  game.value.highlightNextFoundationCards();
 }
 function getSource(name: string): Location {
   const [locationType, locationNumber] = name.split("-");

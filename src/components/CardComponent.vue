@@ -10,7 +10,10 @@ watch(
 <template>
   <div
     class="card"
-    :class="{ red: card.suit === '♥' || card.suit === '◆' }"
+    :class="{
+      red: card.suit === '♥' || card.suit === '◆',
+      'highlight-card': card.highlight,
+    }"
     :style="[
       'left: ' + card.pos.x + 'px',
       'top: ' + card.pos.y + 'px',
@@ -34,6 +37,9 @@ watch(
   color: black;
   background-color: white;
   font-size: 20px;
+}
+.highlight-card {
+  background-color: rgb(206 249 249);
 }
 .red {
   color: red;
