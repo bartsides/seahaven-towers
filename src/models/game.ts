@@ -10,6 +10,7 @@ import type { FreecellRule } from "./freecellRule";
 import type { Location } from "./location";
 import type { Move } from "./move";
 import type { Rule } from "./rule";
+import { isGameWinnable } from "./solver";
 import { suits, type Suit } from "./suit";
 
 export class Game {
@@ -28,6 +29,7 @@ export class Game {
   constructor(config: Config, rules: Rule[]) {
     this.config = config;
     this.rules = rules;
+    console.log(this.rules);
     this.newGame();
   }
 
@@ -36,10 +38,16 @@ export class Game {
     this.columns = JSON.parse(JSON.stringify(this.config.columns));
     this.freecells = JSON.parse(JSON.stringify(this.config.freecells));
     this.foundations = JSON.parse(JSON.stringify(this.config.foundations));
-    this.deck = this.getNewDeck();
-    this.cards = [...this.deck];
-    this.shuffle(this.deck);
-    this.deal();
+    let isWinnable = false;
+    while (!isWinnable) {
+      console.log("dealing new deck");
+      this.deck = this.getNewDeck();
+      this.cards = [...this.deck];
+      this.shuffle(this.deck);
+      this.deal();
+      console.log("checking");
+      isWinnable = isGameWinnable(this);
+    }
     this.checkForFoundationMove();
   }
 
@@ -99,7 +107,12 @@ export class Game {
     if (!this.moves.length) return;
     const move = this.moves.shift();
     if (!move) return;
-    this.moveCard(move.card, move.dest, move.source, false);
+    this.moveCard(
+      move.card,
+      this.getLocation(move.dest),
+      this.getLocation(move.source),
+      false
+    );
   }
 
   public highlightNextFoundationCards() {
@@ -224,7 +237,7 @@ export class Game {
   }
 
   private canDropColumn(cards: Card[], column: Column, rules: Rule[]): boolean {
-    const columnRules = rules.filter((r) => r.type === "column");
+    const columnRules = rules.filter((r) => r.hasOwnProperty("column"));
     for (let i = 0; i < columnRules.length; i++) {
       const rule = <ColumnRule>columnRules[i];
       if (!rule.eval(cards, column, this.freecells)) return false;
@@ -237,7 +250,7 @@ export class Game {
     freecell: Freecell,
     rules: Rule[]
   ): boolean {
-    const freecellRules = rules.filter((r) => r.type === "freecell");
+    const freecellRules = rules.filter((r) => r.hasOwnProperty("freecell"));
     for (let i = 0; i < freecellRules.length; i++) {
       const rule = <FreecellRule>freecellRules[i];
       if (!rule.eval(cards, freecell)) return false;
@@ -250,7 +263,7 @@ export class Game {
     foundation: Foundation,
     rules: Rule[]
   ): boolean {
-    const foundationRules = rules.filter((r) => r.type === "foundation");
+    const foundationRules = rules.filter((r) => r.hasOwnProperty("foundation"));
     for (let i = 0; i < foundationRules.length; i++) {
       const rule = <FoundationRule>foundationRules[i];
       if (!rule.eval(cards, foundation)) return false;
@@ -264,9 +277,18 @@ export class Game {
     dest: Location,
     createMove: boolean = true
   ) {
-    if (createMove) this.moves.unshift({ card, source, dest });
+    if (createMove)
+      this.moves.unshift({ card, source: source.name, dest: dest.name });
     source.cards = source.cards.filter((c) => c.key !== card.key);
     dest.cards.push(card);
     card.location = dest.name;
+  }
+
+  private getLocation(name: string): Location {
+    const [locationType, locationNumber] = name.split("-");
+    const index = Number(locationNumber);
+    if (locationType === "column") return this.columns[index];
+    if (locationType === "freecell") return this.freecells[index];
+    return this.foundations[index];
   }
 }

@@ -8,4 +8,5 @@ export interface Freecell {
   y: number;
   width: number;
   height: number;
+  freecell: boolean;
 }

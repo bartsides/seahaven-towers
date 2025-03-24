@@ -4,6 +4,6 @@ import type { Foundation } from "./foundation";
 export interface FoundationRule {
   name: string;
   description: string;
-  type: string;
+  foundation: true;
   eval(cards: Card[], foundation: Foundation): boolean;
 }

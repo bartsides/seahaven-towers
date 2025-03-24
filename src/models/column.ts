@@ -8,4 +8,5 @@ export interface Column {
   y: number;
   width: number;
   height: number;
+  column: boolean;
 }

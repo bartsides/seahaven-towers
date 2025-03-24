@@ -10,4 +10,5 @@ export interface Foundation {
   y: number;
   width: number;
   height: number;
+  foundation: boolean;
 }

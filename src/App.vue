@@ -48,7 +48,7 @@ function updateCards() {
   ).length;
   game.value.highlightNextFoundationCards();
 }
-function getSource(name: string): Location {
+function getLocation(name: string): Location {
   const [locationType, locationNumber] = name.split("-");
   const index = Number(locationNumber);
   if (locationType === "column") return columns.value[index];
@@ -62,7 +62,7 @@ function dragStart(e: any) {
   const index = e.target.attributes["index"].value;
   const card = cards.value[index];
   selectedOffsetY.value = card.pos.y - e.clientY;
-  const source = getSource(card.location);
+  const source = getLocation(card.location);
   selectedCards.value = [card];
   let addRemainder = false;
   for (let i = 0; i < source.cards.length; i++) {
@@ -85,7 +85,7 @@ function dragEnd(e: any) {
   const x: number = e.clientX;
   const y: number = e.clientY;
   const card = selectedCards.value[0];
-  const source = getSource(card.location);
+  const source = getLocation(card.location);
   let cardMoved = game.value.tryMoveToFreecell(
     selectedCards.value,
     source,

@@ -4,6 +4,6 @@ import type { Freecell } from "./freecell";
 export interface FreecellRule {
   name: string;
   description: string;
-  type: string;
+  freecell: boolean;
   eval(cards: Card[], freecell: Freecell): boolean;
 }

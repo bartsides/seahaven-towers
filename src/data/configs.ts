@@ -16,6 +16,7 @@ export const configs: Config[] = [
           y: 136,
           width: 90,
           height: 500,
+          column: true,
         };
       }),
     freecells: Array(4)
@@ -29,6 +30,7 @@ export const configs: Config[] = [
           y: 8,
           width: 90,
           height: 116,
+          freecell: true,
         };
       }),
     foundations: (<{ suit: Suit; x: number }[]>[
@@ -46,6 +48,7 @@ export const configs: Config[] = [
         y: 8,
         width: 90,
         height: 116,
+        foundation: true,
       };
     }),
   },

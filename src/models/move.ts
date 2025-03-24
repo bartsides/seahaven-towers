@@ -1,8 +1,12 @@
 import type { Card } from "./card";
-import type { Location } from "./location";
 
 export interface Move {
   card: Card;
-  source: Location;
-  dest: Location;
+  source: string;
+  dest: string;
+}
+
+export function debugPrintMove(move?: Move): string {
+  if (!move) return "";
+  return `${move.card.face}${move.card.suit} ${move.source} -> ${move.dest}`;
 }
