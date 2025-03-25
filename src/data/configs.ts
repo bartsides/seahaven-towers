@@ -9,7 +9,7 @@ export const configs: Config[] = [
       .fill(0)
       .map((_, i) => {
         return {
-          name: "column-" + i,
+          name: "col-" + i,
           cards: [],
           index: i,
           x: 8 + 104 * i,
@@ -23,7 +23,7 @@ export const configs: Config[] = [
       .fill(0)
       .map((_, i) => {
         return {
-          name: "freecell-" + i,
+          name: "fcl-" + i,
           cards: [],
           index: i,
           x: 320 + 104 * i,
@@ -40,7 +40,7 @@ export const configs: Config[] = [
       { suit: "♠", x: 944 },
     ]).map((f, i) => {
       return <Foundation>{
-        name: "foundation-" + i,
+        name: "fdn-" + i,
         suit: f.suit,
         cards: [],
         index: i,

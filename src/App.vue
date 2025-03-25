@@ -37,9 +37,7 @@ function newGame() {
   setTimeout(() => updateCards(), 50);
 }
 
-onMounted(() => {
-  newGame();
-});
+onMounted(() => newGame());
 
 function updateCards() {
   update.value = update.value + 1;

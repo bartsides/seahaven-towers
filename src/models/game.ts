@@ -29,8 +29,6 @@ export class Game {
   constructor(config: Config, rules: Rule[]) {
     this.config = config;
     this.rules = rules;
-    console.log(this.rules);
-    this.newGame();
   }
 
   public newGame() {
@@ -39,7 +37,7 @@ export class Game {
     this.freecells = JSON.parse(JSON.stringify(this.config.freecells));
     this.foundations = JSON.parse(JSON.stringify(this.config.foundations));
     let isWinnable = false;
-    while (!isWinnable) {
+    do {
       console.log("dealing new deck");
       this.deck = this.getNewDeck();
       this.cards = [...this.deck];
@@ -47,7 +45,9 @@ export class Game {
       this.deal();
       console.log("checking");
       isWinnable = isGameWinnable(this);
-    }
+      // TODO: Remove once solver works
+      isWinnable = true;
+    } while (!isWinnable);
     this.checkForFoundationMove();
   }
 
@@ -287,8 +287,8 @@ export class Game {
   private getLocation(name: string): Location {
     const [locationType, locationNumber] = name.split("-");
     const index = Number(locationNumber);
-    if (locationType === "column") return this.columns[index];
-    if (locationType === "freecell") return this.freecells[index];
+    if (locationType === "col") return this.columns[index];
+    if (locationType === "fcl") return this.freecells[index];
     return this.foundations[index];
   }
 }

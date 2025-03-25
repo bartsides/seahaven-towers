@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "hash-object": "^5.0.1",
+    "vitest": "^3.0.9",
     "vue": "^3.5.13"
   },
   "devDependencies": {

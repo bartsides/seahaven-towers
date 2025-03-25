@@ -33,10 +33,17 @@ export interface SlimFoundation {
   suit: Suit;
 }
 
+export interface SlimLog {
+  reverse: boolean;
+  immediateReverse: boolean;
+  move: SlimMove;
+}
+
 export interface SlimGame {
   columns: SlimColumn[];
   freecells: SlimFreecell[];
   foundations: SlimFoundation[];
   moveCount: number;
   totalMoves: number;
+  log: SlimLog[];
 }
