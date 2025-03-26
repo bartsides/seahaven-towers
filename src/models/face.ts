@@ -8,7 +8,7 @@ export type Face =
   | "7"
   | "8"
   | "9"
-  | "10"
+  | "T"
   | "J"
   | "Q"
   | "K";
@@ -22,8 +22,12 @@ export const faces: Face[] = [
   "7",
   "8",
   "9",
-  "10",
+  "T",
   "J",
   "Q",
   "K",
 ];
+export function getDisplayFace(face: Face): string {
+  if (face === "T") return "10";
+  return face;
+}

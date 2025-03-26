@@ -12,8 +12,8 @@ import type {
   SlimMove,
 } from "./slimGame";
 
-const MAX_MOVES = 3;
-const TOTAL_MAX_MOVES = 40;
+const MAX_MOVES = 1000;
+const TOTAL_MAX_MOVES = 1000000;
 // TODO: when moving card from column to anywhere but a foundation, try and see if can move
 // Depth first approach
 export function isGameWinnable(game: Game): boolean {
@@ -28,14 +28,14 @@ export function isGameWinnable(game: Game): boolean {
   const moves = findMoves(slimGame);
   for (let i = 0; i < moves.length; i++) {
     if (isWinnable(slimGame, states, moves[i])) {
-      console.log("that's a win babyyy");
+      console.log("that's a win babyyy", slimGame.log.length);
       return true;
     }
   }
   winnable = checkForWin(slimGame);
-  printLog(slimGame);
-  if (winnable) console.log("winnable!");
-  else console.log("not winnable");
+  //printLog(slimGame);
+  if (winnable) console.log("winnable!", slimGame.log.length);
+  else console.log("not winnable", slimGame.log.length);
   return winnable;
 }
 
@@ -43,11 +43,6 @@ function isWinnable(game: SlimGame, states: any, move: SlimMove): boolean {
   if (game.totalMoves > TOTAL_MAX_MOVES) return false;
 
   applyMove(game, move);
-  // console.log(
-  //   "is winnable",
-  //   game.moveCount,
-  //   `${move.card.value}${move.card.suit} ${move.source} -> ${move.dest}`
-  // );
 
   const hash = getHash(game);
   if (states[hash]) {
@@ -80,7 +75,7 @@ function tryFoundationMoves(game: SlimGame): SlimMove[] {
   for (let i = 0; i < game.freecells.length; i++) {
     const freecell = game.freecells[i];
     if (!freecell.cards.length) continue;
-    const card = freecell.cards[0];
+    const card = freecell.cards[freecell.cards.length - 1];
     for (let f = 0; f < game.foundations.length; f++) {
       const foundation = game.foundations[f];
       if (canDropFoundation(card, foundation)) {
@@ -90,7 +85,7 @@ function tryFoundationMoves(game: SlimGame): SlimMove[] {
           source: freecell.name,
           dest: foundation.name,
         };
-        moves.unshift(move);
+        moves.push(move);
         applyMove(game, move);
         break;
       }
@@ -100,18 +95,19 @@ function tryFoundationMoves(game: SlimGame): SlimMove[] {
     for (let i = 0; i < game.columns.length; i++) {
       const column = game.columns[i];
       if (!column.cards.length) continue;
-      const card = column.cards[0];
+      const card = column.cards[column.cards.length - 1];
       for (let f = 0; f < game.foundations.length; f++) {
         const foundation = game.foundations[f];
         if (canDropFoundation(card, foundation)) {
           moveFound = true;
           game.moveCount++;
-          moves.unshift({
+          const move = {
             card: card,
             source: column.name,
             dest: foundation.name,
-          });
-          moveCard(card, column, foundation);
+          };
+          moves.push(move);
+          applyMove(game, move);
           break;
         }
       }
@@ -119,7 +115,7 @@ function tryFoundationMoves(game: SlimGame): SlimMove[] {
     }
   }
   if (moveFound) {
-    moves.unshift(...tryFoundationMoves(game));
+    moves.push(...tryFoundationMoves(game));
   }
   return moves;
 }
@@ -128,7 +124,7 @@ function findMoves(game: SlimGame): SlimMove[] {
   const moves: SlimMove[] = [];
   game.freecells.forEach((freecell) => {
     if (!freecell.cards.length) return;
-    const card = freecell.cards[0];
+    const card = freecell.cards[freecell.cards.length - 1];
     game.columns.forEach((column) => {
       if (canDropColumn(card, column)) {
         moves.push({ card, source: freecell.name, dest: column.name });
@@ -137,7 +133,7 @@ function findMoves(game: SlimGame): SlimMove[] {
   });
   game.columns.forEach((column) => {
     if (!column.cards.length) return;
-    const card = column.cards[0];
+    const card = column.cards[column.cards.length - 1];
     game.columns.forEach((dest) => {
       if (column.name === dest.name) return;
       // Avoid moving root card back and forth between empty columns
@@ -183,9 +179,7 @@ function canDropFoundation(
 function applyMove(game: SlimGame, move: SlimMove) {
   game.totalMoves++;
   game.moveCount++;
-
   game.log.push({ reverse: false, move, immediateReverse: false });
-
   moveCard(
     move.card,
     getSlimLocation(move.source, game),
@@ -294,23 +288,29 @@ function getHash(game: SlimGame): string {
 }
 
 export function printLog(game: SlimGame): void {
-  console.log("-----------------------");
-  console.log(`Solver move log - ${game.log.length}`);
-  console.log("-----------------------");
-  game.log.forEach((log) =>
+  for (let i = game.log.length - 1; i >= 0; i--) {
+    const log = game.log[i];
     console.log(
       `${moveToString(log.move)} ${
         log.immediateReverse ? "🧨" : log.reverse ? "⬆️" : " "
       }`
-    )
-  );
+    );
+  }
   console.log("-----------------------");
   console.log(`Solver move log - ${game.log.length}`);
   console.log("-----------------------");
 }
 
 function moveToString(move: SlimMove): string {
-  return `${move.card.value.toString().padStart(2, " ")}${move.card.suit} | ${
-    move.source
-  } -> ${move.dest}`;
+  return `${convertCardValueToFace(move.card.value).padStart(2, " ")}${
+    move.card.suit
+  } | ${move.source} -> ${move.dest}`;
+}
+
+function convertCardValueToFace(value: number): string {
+  if (value === 0) return "A";
+  if (value === 10) return "J";
+  if (value === 11) return "Q";
+  if (value === 12) return "K";
+  return `${value + 1}`;
 }

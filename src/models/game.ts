@@ -43,12 +43,16 @@ export class Game {
       this.cards = [...this.deck];
       this.shuffle(this.deck);
       this.deal();
-      console.log("checking");
-      isWinnable = isGameWinnable(this);
-      // TODO: Remove once solver works
+      //isWinnable = isGameWinnable(this);
+      // TODO: Remove below once solver works
       isWinnable = true;
     } while (!isWinnable);
     this.checkForFoundationMove();
+  }
+
+  public checkIfWinnable() {
+    console.log("checking");
+    isGameWinnable(this);
   }
 
   public tryMoveToColumn(

@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { watch } from "vue";
+import { ref, watch } from "vue";
 import { type Card } from "../models/card";
+import { getDisplayFace } from "../models/face";
+import { getDisplaySuit } from "../models/suit";
 const { card } = defineProps<{ card: Card }>();
+const face = ref<string>(getDisplayFace(card.face));
+const suit = ref<string>(getDisplaySuit(card.suit));
 watch(
   () => card,
   () => {}
@@ -11,7 +15,7 @@ watch(
   <div
     class="card"
     :class="{
-      red: card.suit === '♥' || card.suit === '◆',
+      red: card.suit === 'H' || card.suit === 'D',
       'highlight-card': card.highlight,
     }"
     :style="[
@@ -21,8 +25,8 @@ watch(
       card.draggable ? 'cursor: grab' : '',
     ]"
   >
-    <div class="unselectable upper-left">{{ card.face }}{{ card.suit }}</div>
-    <div class="unselectable bottom-right">{{ card.face }}{{ card.suit }}</div>
+    <div class="unselectable upper-left">{{ face }}{{ suit }}</div>
+    <div class="unselectable bottom-right">{{ face }}{{ suit }}</div>
   </div>
 </template>
 <style scoped>

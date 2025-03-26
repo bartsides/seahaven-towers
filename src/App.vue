@@ -39,6 +39,9 @@ function newGame() {
 
 onMounted(() => newGame());
 
+function checkIfWinnable() {
+  game.value.checkIfWinnable();
+}
 function updateCards() {
   update.value = update.value + 1;
   openFreecells.value = game.value.freecells.filter(
@@ -177,6 +180,7 @@ function undo() {
     <div class="buttons">
       <button @click="newGame()">New Game</button>
       <button @click="undo()">Undo</button>
+      <button @click="checkIfWinnable">Check if Winnable</button>
     </div>
   </div>
 </template>
